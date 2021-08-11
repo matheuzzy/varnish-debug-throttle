@@ -23,11 +23,13 @@ services:
     expose:
       - "8080"
     networks:
-      - backend
+      backend:
+        ipv4_address: 172.21.0.4
 
   varnish:
     image: varnish:6
     container_name: demo-varnish
+    command: "-p thread_pools=4 -p thread_pool_min=4000 -p thread_pool_max=4000"
     volumes:
       - ./default.vcl:/etc/varnish/default.vcl:ro
       - workdir:/var/lib/varnish
@@ -35,6 +37,22 @@ services:
       - "8081:80"
     networks:
       - backend
+
+  locust-fast:
+    image: locustio/locust
+    ports:
+     - "8089:8089"
+    volumes:
+      - ./:/mnt/locust
+    command: -f /mnt/locust/locustfile_fast.py -H http://master:8089
+
+  locust-slow:
+    image: locustio/locust
+    ports:
+     - "8090:8090"
+    volumes:
+      - ./:/mnt/locust
+    command: -f /mnt/locust/locustfile_slow.py -H http://master:8089 -P 8090
 
 volumes:
   workdir:
@@ -48,3 +66,6 @@ networks:
     driver: bridge 
     driver_opts:
       com.docker.network.driver.mtu: 1450
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16

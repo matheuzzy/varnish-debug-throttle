@@ -1,0 +1,50 @@
+version: '3'
+
+services:
+  php-fpm:
+    image: php:7.4.2-fpm
+    container_name: demo-php-fpm
+    volumes:
+      - ./:/var/www/demo
+    networks:
+      - backend
+
+  nginx:
+    build:
+      context: ./
+      dockerfile: docker/nginx/Dockerfile
+    container_name: demo-nginx
+    volumes:
+      - ./:/var/www/demo
+    depends_on:
+      - php-fpm
+    ports:
+      - "8080:80"
+    expose:
+      - "8080"
+    networks:
+      - backend
+
+  varnish:
+    image: varnish:6
+    container_name: demo-varnish
+    volumes:
+      - ./default.vcl:/etc/varnish/default.vcl:ro
+      - workdir:/var/lib/varnish
+    ports:
+      - "8081:80"
+    networks:
+      - backend
+
+volumes:
+  workdir:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+
+networks:
+  backend:
+    driver: bridge 
+    driver_opts:
+      com.docker.network.driver.mtu: 1450
